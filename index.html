@@ -422,7 +422,7 @@ for(const b of [tp,tlb,tk])b.onclick=()=>{b.setAttribute('aria-pressed',String(b
 const q=document.getElementById('q'),qn=document.getElementById('qn');
 let hits=[],hi=-1;
 function runSearch(go){
-  tl.querySelectorAll('.hit').forEach(el=>el.classList.remove('hit'));hits=[];hi=-1;
+  tl.querySelectorAll('.hit,.cur').forEach(el=>el.classList.remove('hit','cur'));hits=[];hi=-1;
   const t=norm(q.value.trim());
   if(t.length<2||!V){tl.classList.remove('searching');qn.textContent='';return}
   tl.classList.add('searching');
