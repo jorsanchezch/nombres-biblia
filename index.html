@@ -44,6 +44,9 @@ h1{font-family:var(--f-display);font-weight:700;font-size:24px;margin:0;white-sp
 .range{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .search{display:flex;align-items:center;gap:2px;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:0 2px 0 8px;min-width:0;flex:0 1 260px}
 .search input{border:0;background:transparent;color:var(--fg);font:inherit;padding:7px 0;width:100%;min-width:60px;outline:none}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.qx{flex:none;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin:0 2px;padding:0;border-radius:50%;cursor:pointer;color:var(--fg);background:var(--surface);border:1px solid var(--muted);box-shadow:0 1px 3px rgba(0,0,0,.25),0 0 0 2px var(--bg)}
+.qx:hover{background:var(--fg);color:var(--surface);border-color:var(--fg)}
 .search{position:relative}
 .ci{display:inline-flex;align-items:center;color:var(--hit);cursor:help;padding:2px;border-radius:50%;flex:none}
 .ci .cit{display:none;position:absolute;top:calc(100% + 6px);right:0;width:min(280px,calc(100vw - 32px));background:var(--surface);color:var(--fg);border:1px solid var(--rule);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);padding:8px 10px;font-size:12px;line-height:1.4;z-index:50;font-weight:400}
@@ -184,7 +187,7 @@ footer p{max-width:70ch;margin:0 0 6px}
       <button class="btn tog" id="tp" aria-pressed="true"><i class="dot p"></i>Personajes</button>
       <button class="btn tog" id="tl2" aria-pressed="true"><i class="dot l"></i>Lugares</button>
       <button class="btn tog" id="tk" aria-pressed="false" title="Personajes y lugares sin nombre propio, como «el siervo de Eliseo» o «los lugares altos»"><i class="dot k"></i>Sin nombre propio</button>
-      <label class="search" for="q"><input id="q" type="search" placeholder="Buscar (p. ej. Elías, Siquem)" autocomplete="off" aria-label="Buscar nombre"><span class="ci" id="qcase" hidden tabindex="0" role="note" aria-label="Distingue mayúsculas: como escribiste una mayúscula, la búsqueda respeta mayúsculas y minúsculas. Escribe todo en minúsculas para ignorarlas."><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.2" y="7" width="1.6" height="5" rx=".8" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg><span class="cit"><b>Aa · distingue mayúsculas</b>Como escribiste una mayúscula, la búsqueda respeta mayúsculas y minúsculas: «Ana» encuentra a Ana pero no a «Hanán» ni a «Natanael». Escribe todo en minúsculas para ignorarlas.</span></span><span class="n" id="qn"></span><button class="btn icon" id="qprev" aria-label="Anterior">▲</button><button class="btn icon" id="qnext" aria-label="Siguiente">▼</button></label>
+      <label class="search" for="q"><input id="q" type="search" placeholder="Buscar (p. ej. Elías, Siquem)" autocomplete="off" aria-label="Buscar nombre"><button class="qx" id="qclear" hidden aria-label="Borrar búsqueda" title="Borrar búsqueda"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><span class="ci" id="qcase" hidden tabindex="0" role="note" aria-label="Distingue mayúsculas: como escribiste una mayúscula, la búsqueda respeta mayúsculas y minúsculas. Escribe todo en minúsculas para ignorarlas."><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.2" y="7" width="1.6" height="5" rx=".8" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg><span class="cit"><b>Aa · distingue mayúsculas</b>Como escribiste una mayúscula, la búsqueda respeta mayúsculas y minúsculas: «Ana» encuentra a Ana pero no a «Hanán» ni a «Natanael». Escribe todo en minúsculas para ignorarlas.</span></span><span class="n" id="qn"></span><button class="btn icon" id="qprev" aria-label="Anterior">▲</button><button class="btn icon" id="qnext" aria-label="Siguiente">▼</button></label>
     </div>
   </div>
 </header>
@@ -446,7 +449,11 @@ function step(d){if(!hits.length)return;hi=(hi+d+hits.length)%hits.length;
   tl.querySelectorAll('.cur').forEach(el=>el.classList.remove('cur'));
   const row=V.rowEls[hits[hi]];row.querySelectorAll('.hit').forEach(el=>el.classList.add('cur'));
   scrollToRow(hits[hi]);qn.textContent=`${hi+1}/${hits.length}`}
-let tmr;q.addEventListener('input',()=>{clearTimeout(tmr);tmr=setTimeout(()=>runSearch(true),300)});
+// Clear button stays visible while there is text (the browser's own one only shows on hover)
+const qclear=document.getElementById('qclear');
+const syncClear=()=>{qclear.hidden=!q.value};
+qclear.onclick=ev=>{ev.preventDefault();clearTimeout(tmr);q.value='';syncClear();runSearch(false);q.focus()};
+let tmr;q.addEventListener('input',()=>{syncClear();clearTimeout(tmr);tmr=setTimeout(()=>runSearch(true),300)});
 q.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();if(hi<0)runSearch(true);else step(ev.shiftKey?-1:1)}});
 document.getElementById('qnext').onclick=ev=>{ev.preventDefault();if(hi<0)runSearch(true);else step(1)};
 document.getElementById('qprev').onclick=ev=>{ev.preventDefault();step(-1)};
