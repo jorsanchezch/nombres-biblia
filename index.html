@@ -44,6 +44,11 @@ h1{font-family:var(--f-display);font-weight:700;font-size:24px;margin:0;white-sp
 .range{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .search{display:flex;align-items:center;gap:2px;background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:0 2px 0 8px;min-width:0;flex:0 1 260px}
 .search input{border:0;background:transparent;color:var(--fg);font:inherit;padding:7px 0;width:100%;min-width:60px;outline:none}
+.search{position:relative}
+.ci{display:inline-flex;align-items:center;color:var(--hit);cursor:help;padding:2px;border-radius:50%;flex:none}
+.ci .cit{display:none;position:absolute;top:calc(100% + 6px);right:0;width:min(280px,calc(100vw - 32px));background:var(--surface);color:var(--fg);border:1px solid var(--rule);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.2);padding:8px 10px;font-size:12px;line-height:1.4;z-index:50;font-weight:400}
+.ci .cit b{display:block;color:var(--hit);margin-bottom:2px}
+.ci:hover .cit,.ci:focus .cit{display:block}
 .search .n{font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap}
 .btn{font:inherit;font-size:13px;color:var(--fg);background:var(--bg);border:1px solid var(--rule);border-radius:6px;padding:6px 10px;cursor:pointer;line-height:1.2}
 .btn:hover{border-color:var(--muted)}
@@ -179,7 +184,7 @@ footer p{max-width:70ch;margin:0 0 6px}
       <button class="btn tog" id="tp" aria-pressed="true"><i class="dot p"></i>Personajes</button>
       <button class="btn tog" id="tl2" aria-pressed="true"><i class="dot l"></i>Lugares</button>
       <button class="btn tog" id="tk" aria-pressed="false" title="Personajes y lugares sin nombre propio, como «el siervo de Eliseo» o «los lugares altos»"><i class="dot k"></i>Sin nombre propio</button>
-      <label class="search" for="q"><input id="q" type="search" placeholder="Buscar (p. ej. Elías, Siquem)" autocomplete="off" aria-label="Buscar nombre"><span class="n" id="qn"></span><button class="btn icon" id="qprev" aria-label="Anterior">▲</button><button class="btn icon" id="qnext" aria-label="Siguiente">▼</button></label>
+      <label class="search" for="q"><input id="q" type="search" placeholder="Buscar (p. ej. Elías, Siquem)" autocomplete="off" aria-label="Buscar nombre"><span class="ci" id="qcase" hidden tabindex="0" role="note" aria-label="Distingue mayúsculas: como escribiste una mayúscula, la búsqueda respeta mayúsculas y minúsculas. Escribe todo en minúsculas para ignorarlas."><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.2" y="7" width="1.6" height="5" rx=".8" fill="currentColor"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/></svg><span class="cit"><b>Aa · distingue mayúsculas</b>Como escribiste una mayúscula, la búsqueda respeta mayúsculas y minúsculas: «Ana» encuentra a Ana pero no a «Hanán» ni a «Natanael». Escribe todo en minúsculas para ignorarlas.</span></span><span class="n" id="qn"></span><button class="btn icon" id="qprev" aria-label="Anterior">▲</button><button class="btn icon" id="qnext" aria-label="Siguiente">▼</button></label>
     </div>
   </div>
 </header>
@@ -220,7 +225,8 @@ const TITLES={
 11:["Elías y el rey Ocozías","Elías sube al cielo","Guerra contra Moab","Milagros de Eliseo; la sunamita","Naamán es sanado","El hacha que flota; sitio de Samaria","Fin del sitio de Samaria","Hazael; reyes de Judá","Jehú es ungido; muerte de Jezabel","Jehú acaba con la casa de Acab","Atalía y el niño Joás","Joás repara el templo","Joacaz, Joás y muerte de Eliseo","Amasías y Jeroboam II","Reyes de Judá e Israel","Acaz de Judá","Caída de Samaria","Ezequías y la amenaza asiria","Dios libra a Jerusalén","Enfermedad de Ezequías","Manasés y Amón","Josías encuentra el libro de la ley","Reforma de Josías","Joacim y Joaquín; primera deportación","Caída de Jerusalén"]};
 const tl=document.getElementById('tl'),stats=document.getElementById('stats');
 // Accents, hyphens, spaces and apostrophes are ignored, so "is boset", "isboset" and "Is-boset" all match
-const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[\s\-‐–ʼ'’.]/g,'');
+const fold=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[\s\-‐–ʼ'’.]/g,'');
+const norm=s=>fold(s).toLowerCase();
 const bookOf=v=>Math.floor(v/1e6), chOf=v=>Math.floor(v/1000)%1000, vsOf=v=>v%1000;
 const ref=v=>books[bookOf(v)].es+' '+chOf(v)+':'+vsOf(v);
 const enRef=v=>books[bookOf(v)].en+' '+chOf(v)+':'+vsOf(v);
@@ -419,14 +425,16 @@ function topRow(){if(!V)return null;const y=header.offsetHeight+60;const el=V.ro
 for(const b of [tp,tlb,tk])b.onclick=()=>{b.setAttribute('aria-pressed',String(b.getAttribute('aria-pressed')!=='true'));build()};
 
 // Search: steps through every place the name shows up, top to bottom
-const q=document.getElementById('q'),qn=document.getElementById('qn');
+const q=document.getElementById('q'),qn=document.getElementById('qn'),caseInfo=document.getElementById('qcase');
 let hits=[],hi=-1;
 function runSearch(go){
   tl.querySelectorAll('.hit,.cur').forEach(el=>el.classList.remove('hit','cur'));hits=[];hi=-1;
-  const t=norm(q.value.trim());
+  // Smart case: a capital letter in the query makes the match case-sensitive
+  const raw=q.value.trim(),cased=/\p{Lu}/u.test(raw),f=cased?fold:norm,t=f(raw);
+  caseInfo.hidden=!cased;
   if(t.length<2||!V){tl.classList.remove('searching');qn.textContent='';return}
   tl.classList.add('searching');
-  V.per.forEach((m,e)=>{if(!norm(ents[e][0]).includes(t))return;
+  V.per.forEach((m,e)=>{if(!f(ents[e][0]).includes(t))return;
     tl.querySelectorAll(`[data-e="${e}"]`).forEach(el=>el.classList.add('hit'));
     [...m.keys()].forEach(r=>hits.push(r));});
   hits=[...new Set(hits)].sort((x,y)=>x-y);
