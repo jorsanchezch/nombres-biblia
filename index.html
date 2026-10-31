@@ -103,6 +103,9 @@ select.btn{max-width:150px;padding:5px 6px}
 .c:hover,.c.on{box-shadow:0 0 0 1px currentColor}
 .c.rel{outline:2px dotted var(--focus);outline-offset:1px}
 .c.hit{box-shadow:0 0 0 2px var(--hit)}
+.c.cur{background:var(--hit);border-color:var(--hit);box-shadow:0 0 0 3px color-mix(in srgb,var(--hit) 40%,transparent)}
+.c.cur>*{color:#1a1300}
+.tt .nm.cur{background:var(--hit);color:#1a1300;box-shadow:0 0 0 2px var(--hit)}
 .c.sel{background:currentColor}.c.sel>*{color:var(--surface)}
 
 g.ln{cursor:pointer}
@@ -430,8 +433,12 @@ function runSearch(go){
   qn.textContent=hits.length?`${hits.length} cap.`:'0';
   if(go&&hits.length)step(1);
 }
-function step(d){if(!hits.length)return;hi=(hi+d+hits.length)%hits.length;scrollToRow(hits[hi]);qn.textContent=`${hi+1}/${hits.length}`}
-let tmr;q.addEventListener('input',()=>{clearTimeout(tmr);tmr=setTimeout(()=>runSearch(false),180)});
+// Jump to a matching chapter and mark the matches in it as the current result
+function step(d){if(!hits.length)return;hi=(hi+d+hits.length)%hits.length;
+  tl.querySelectorAll('.cur').forEach(el=>el.classList.remove('cur'));
+  const row=V.rowEls[hits[hi]];row.querySelectorAll('.hit').forEach(el=>el.classList.add('cur'));
+  scrollToRow(hits[hi]);qn.textContent=`${hi+1}/${hits.length}`}
+let tmr;q.addEventListener('input',()=>{clearTimeout(tmr);tmr=setTimeout(()=>runSearch(true),300)});
 q.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();if(hi<0)runSearch(true);else step(ev.shiftKey?-1:1)}});
 document.getElementById('qnext').onclick=ev=>{ev.preventDefault();if(hi<0)runSearch(true);else step(1)};
 document.getElementById('qprev').onclick=ev=>{ev.preventDefault();step(-1)};
