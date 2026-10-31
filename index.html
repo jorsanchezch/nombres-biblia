@@ -211,7 +211,8 @@ const TITLES={
 10:["Salomón es ungido rey","Muere David; Salomón afirma su reino","Salomón pide sabiduría","Funcionarios y riqueza de Salomón","Acuerdo con Hiram de Tiro","Construcción del templo","El palacio y los utensilios del templo","Dedicación del templo","Dios responde a Salomón","Visita de la reina de Saba","Esposas de Salomón; se anuncia la división","Se divide el reino; becerros de Jeroboam","El profeta de Judá en Betel","Ahías contra Jeroboam; reinado de Roboam","Abiam, Asa, Nadab y Baasa","Reyes de Israel hasta Acab","Elías y la viuda de Sarepta","Elías y los profetas de Baal en el Carmelo","Elías en el monte Horeb","Acab contra Ben-adad","La viña de Nabot","Micaías; muerte de Acab"],
 11:["Elías y el rey Ocozías","Elías sube al cielo","Guerra contra Moab","Milagros de Eliseo; la sunamita","Naamán es sanado","El hacha que flota; sitio de Samaria","Fin del sitio de Samaria","Hazael; reyes de Judá","Jehú es ungido; muerte de Jezabel","Jehú acaba con la casa de Acab","Atalía y el niño Joás","Joás repara el templo","Joacaz, Joás y muerte de Eliseo","Amasías y Jeroboam II","Reyes de Judá e Israel","Acaz de Judá","Caída de Samaria","Ezequías y la amenaza asiria","Dios libra a Jerusalén","Enfermedad de Ezequías","Manasés y Amón","Josías encuentra el libro de la ley","Reforma de Josías","Joacim y Joaquín; primera deportación","Caída de Jerusalén"]};
 const tl=document.getElementById('tl'),stats=document.getElementById('stats');
-const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+// Accents, hyphens, spaces and apostrophes are ignored, so "is boset", "isboset" and "Is-boset" all match
+const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[\s\-‐–ʼ'’.]/g,'');
 const bookOf=v=>Math.floor(v/1e6), chOf=v=>Math.floor(v/1000)%1000, vsOf=v=>v%1000;
 const ref=v=>books[bookOf(v)].es+' '+chOf(v)+':'+vsOf(v);
 const enRef=v=>books[bookOf(v)].en+' '+chOf(v)+':'+vsOf(v);
