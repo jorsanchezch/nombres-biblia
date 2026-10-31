@@ -83,6 +83,11 @@ select.btn{max-width:150px;padding:5px 6px}
 .ch:hover{color:var(--fg);text-decoration:underline}
 .info{padding:4px 0 5px 10px;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start;min-width:0;border-left:1px solid var(--rule);position:relative;z-index:2}
 .tt{flex-basis:100%;font-family:var(--f-display);font-style:italic;font-size:15px;line-height:1.25;color:var(--fg);padding:1px 0 2px}
+.tt .nm{cursor:pointer;border-bottom:1px dotted var(--muted);border-radius:2px;transition:background .12s,color .12s}
+.tt .nm:hover,.tt .nm.on{border-bottom-color:transparent}
+.tt .nm.p:hover,.tt .nm.p.on{background:var(--person-bg);color:var(--person);box-shadow:0 0 0 2px var(--person-bg)}
+.tt .nm.l:hover,.tt .nm.l.on{background:var(--place-bg);color:var(--place);box-shadow:0 0 0 2px var(--place-bg)}
+.tt .nm.rel{outline:2px dotted var(--focus);outline-offset:1px}
 .bhead{position:sticky;top:var(--hh);z-index:5;background:var(--surface);border-top:2px solid var(--fg);border-bottom:1px solid var(--rule);display:flex;align-items:baseline;gap:12px;padding:8px 10px 6px calc(var(--chw) - 30px)}
 .bhead h2{font-family:var(--f-display);font-weight:700;font-size:22px;margin:0;line-height:1.1}
 .bhead .meta{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
@@ -230,6 +235,22 @@ const setHH=()=>document.documentElement.style.setProperty('--hh',header.offsetH
 new ResizeObserver(setHH).observe(header);
 
 let V=null; // current view state
+// Wrap names in a chapter title that belong to someone or somewhere shown in that chapter
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function linkTitle(t,row,per){
+  const cands=[];
+  per.forEach((m,e)=>{if(!m.has(row))return;const base=ents[e][0].split(' (')[0];if(base.length>1)cands.push([base,e,m.get(row)[0]])});
+  cands.sort((x,y)=>y[0].length-x[0].length);
+  const taken=new Array(t.length).fill(false),hits=[];
+  for(const [base,e,v] of cands){
+    const re=new RegExp('(?<![\\p{L}])'+reEsc(base)+'(?![\\p{L}])','giu');let m;
+    while((m=re.exec(t))){const a=m.index,z=a+m[0].length;
+      if(!taken.slice(a,z).some(Boolean)){taken.fill(true,a,z);hits.push([a,z,e,v])}}
+  }
+  hits.sort((x,y)=>x[0]-y[0]);let h='',p=0;
+  for(const [a,z,e,v] of hits){h+=esc(t.slice(p,a))+`<span class="nm ${ents[e][1]?'l':'p'}" data-e="${e}" data-v="${v}">${esc(t.slice(a,z))}</span>`;p=z}
+  return h+esc(t.slice(p));
+}
 function build(){
   let a=+from.value,b=+to.value; if(a>b){[a,b]=[b,a];from.value=a;to.value=b}
   const showP=tp.getAttribute('aria-pressed')==='true',showL=tlb.getAttribute('aria-pressed')==='true',showK=tk.getAttribute('aria-pressed')==='true';
@@ -274,9 +295,10 @@ function build(){
       h.innerHTML=`<h2>${books[R.b].es}</h2><div class="meta"><span>${books[R.b].ch} cap.</span><span>${books[R.b].div}</span><span>${nb} nombres</span></div>`;frag.appendChild(h)}
     const el=document.createElement('div');el.className='row';el.dataset.r=i;
     const t=TITLES[R.b]&&TITLES[R.b][R.c-1];
+    const tHtml=t?linkTitle(t,i,per):'';
     const chips=rowChips[i].sort((x,y)=>x.v-y.v||(y.entry?1:0)-(x.entry?1:0)).map(k=>{const E=ents[k.e];
       return `<button class="c ${E[1]?'l':'p'}${k.entry?' entry':''}${CSET.has(k.e)?' k':''}" data-e="${k.e}" data-v="${k.v}" title="${esc(E[0])}${E[5]?' ('+esc(E[5])+')':''} · ${ref(k.v)}">${k.entry?'<i class="ld"></i>':''}<span>${esc(E[0])}</span>${k.n>1?`<sup>${k.n}</sup>`:''}<span class="vr">v.${vsOf(k.v)}</span></button>`}).join('');
-    el.innerHTML=`<a class="ch" href="${bg([books[R.b].en+' '+R.c])}" target="_blank" rel="noopener" title="Leer ${books[R.b].es} ${R.c} en la NTV">${R.c}</a><div></div><div class="info">${t?`<div class="tt">${t}</div>`:''}${chips}</div>`;
+    el.innerHTML=`<a class="ch" href="${bg([books[R.b].en+' '+R.c])}" target="_blank" rel="noopener" title="Leer ${books[R.b].es} ${R.c} en la NTV">${R.c}</a><div></div><div class="info">${t?`<div class="tt">${tHtml}</div>`:''}${chips}</div>`;
     frag.appendChild(el);rowEls.push(el);
   });
   tl.replaceChildren(frag);
